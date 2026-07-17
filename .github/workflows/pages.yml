@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -24,13 +26,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build versioned site from release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p _site
+          cp docs/index.html _site/index.html
+
+          # Download assets for every release into a versioned subdirectory
+          gh release list --repo ${{ github.repository }} --json tagName \
+            --jq '.[].tagName' | while read tag; do
+            mkdir -p "_site/${tag}"
+            gh release download "${tag}" \
+              --repo ${{ github.repository }} \
+              --pattern 'example.owl' \
+              --pattern 'example.ttl' \
+              --dir "_site/${tag}" \
+              --clobber 2>/dev/null || true
+          done
+
+          # Populate latest/ from the release marked as latest
+          LATEST=$(gh release list --repo ${{ github.repository }} \
+            --json tagName,isLatest --jq '.[] | select(.isLatest) | .tagName')
+          if [ -n "$LATEST" ]; then
+            mkdir -p _site/latest
+            gh release download "${LATEST}" \
+              --repo ${{ github.repository }} \
+              --pattern 'example.owl' \
+              --pattern 'example.ttl' \
+              --dir _site/latest \
+              --clobber 2>/dev/null || true
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './docs'
+          path: './_site'
 
       - name: Deploy to GitHub Pages
         id: deployment

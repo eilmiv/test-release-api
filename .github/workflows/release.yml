@@ -56,27 +56,3 @@ jobs:
           asset_name: example.ttl
           asset_content_type: text/turtle
 
-      - name: Update GitHub Pages docs
-        run: |
-          VERSION=${{ github.ref_name }}
-          # Save generated files before switching branches
-          cp example.owl /tmp/example.owl
-          cp example.ttl /tmp/example.ttl
-          # Switch to main to update docs/
-          git fetch origin main
-          git checkout main
-          # Create versioned directory
-          mkdir -p docs/${VERSION}
-          cp /tmp/example.owl docs/${VERSION}/example.owl
-          cp /tmp/example.ttl docs/${VERSION}/example.ttl
-          # Update latest/ directory
-          rm -rf docs/latest
-          mkdir -p docs/latest
-          cp /tmp/example.owl docs/latest/example.owl
-          cp /tmp/example.ttl docs/latest/example.ttl
-          # Commit and push to main (triggers pages deployment)
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/
-          git commit -m "chore: publish ${VERSION} files to docs"
-          git push origin main
