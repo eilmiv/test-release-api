@@ -11,7 +11,7 @@
 
   <owl:Class rdf:about="https://example.org/example#Thing">
     <rdfs:label>Thing</rdfs:label>
-    <rdfs:comment>An example class.</rdfs:comment>
+    <rdfs:comment>An example class. (now v2)</rdfs:comment>
   </owl:Class>
 
 </rdf:RDF>
