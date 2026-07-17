@@ -8,15 +8,17 @@ both formats as release assets and to GitHub Pages under a versioned path.
 
 **GitHub Releases:** The workflow uploads `example.owl` with `application/rdf+xml`, but the final download is still served as `application/octet-stream`.
 
-**GitHub Pages:** The same file is deployed via GitHub Pages (see [GitHub Pages section](#github-pages-alternative)) where the MIME type is correct.
+**GitHub Pages:** The same files are deployed via GitHub Pages where the MIME type is correct.
 
 ## Setup overview
 
-- `example.owl` in the repository root is the canonical source file.
-- When you push a release tag (`v*`), CI converts `example.owl` to `example.ttl` and publishes both files as release assets.
-- The Pages deployment then copies the same released artifacts into:
-   - `/{version}/...` for immutable versioned files
-   - `/latest/...` as a moving alias to the newest release
+- Canonical source: [`example.owl`](example.owl) is the only file you edit by hand.
+- Release build: on a pushed tag matching `v*`, [`release.yml`](.github/workflows/release.yml) installs `rdflib`, converts OWL (RDF/XML) to Turtle, and generates `example.ttl`.
+- Release assets: the same workflow creates the GitHub Release and uploads both `example.owl` and `example.ttl` as assets with explicit content types.
+- Pages deployment trigger: [`pages.yml`](.github/workflows/pages.yml) runs after the `Release` workflow completes successfully (`workflow_run`) and can also run on `main` pushes/manual dispatch.
+   - Pages are rebuilt from GitHub Release assets (downloaded with `gh release download`)
+- Version layout: for each release tag, files are placed at `/{version}/example.owl` and `/{version}/example.ttl`; the release marked as latest is also copied to `/latest/...`.
+- Pages entry page: [`docs/index.html`](docs/index.html) is copied to the site root as `_site/index.html` during deployment.
 
 This keeps release downloads and GitHub Pages content aligned from one source while providing stable, versioned URLs.
 
