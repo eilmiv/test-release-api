@@ -1,8 +1,8 @@
 # test-release-api
 
-Demonstrates how to set the MIME type of release assets on GitHub so that OWL/RDF files can be parsed directly by tools such as [rdflib](https://rdflib.readthedocs.io/) without receiving an `application/octet-stream` response.
+Tests whether GitHub Release assets preserve a custom MIME type for OWL/RDF files.
 
-The workflow uploads `example.owl` with the content type `application/rdf+xml`, which rdflib recognises natively.
+The workflow uploads `example.owl` with `application/rdf+xml`, but the final download is still served as `application/octet-stream`.
 
 ## How to create a release
 
@@ -32,7 +32,7 @@ https://github.com/eilmiv/test-release-api/releases/download/v1.0.0/example.owl
 
 Replace `v1.0.0` with the actual tag you created.
 
-Because the asset is served with the `application/rdf+xml` content type, rdflib can parse it without errors:
+If GitHub served the asset as `application/rdf+xml`, rdflib could parse it directly:
 
 ```python
 from rdflib import Graph
@@ -41,3 +41,16 @@ g = Graph()
 g.parse("https://github.com/eilmiv/test-release-api/releases/download/v1.0.0/example.owl")
 print(list(g))
 ```
+
+## Test Result (v1.0.0)
+
+Status: **Failed**
+
+Observed behavior for release `v1.0.0`:
+
+- GitHub Release API asset metadata reports `content_type: application/rdf+xml`.
+- The actual download response header is `content-type: application/octet-stream`.
+
+Conclusion:
+
+GitHub currently does not preserve or serve custom MIME types for release asset downloads in this flow, and serves the file as `application/octet-stream`.
