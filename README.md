@@ -2,6 +2,10 @@
 
 Tests whether GitHub Release assets and GitHub Pages preserve a custom MIME type for OWL/RDF files.
 
+The single source of truth for the ontology is `example.owl` in the repository root.
+On every release the CI generates an additional `example.ttl` (Turtle format) and publishes
+both formats as release assets and to GitHub Pages under a versioned path.
+
 **GitHub Releases:** The workflow uploads `example.owl` with `application/rdf+xml`, but the final download is still served as `application/octet-stream`.
 
 **GitHub Pages:** The same file is deployed via GitHub Pages (see [GitHub Pages section](#github-pages-alternative)) to test whether the correct MIME type is preserved there.
@@ -21,32 +25,34 @@ Tests whether GitHub Release assets and GitHub Pages preserve a custom MIME type
    ```
 
 3. GitHub Actions will automatically:
+   - Generate `example.ttl` (Turtle) from `example.owl` (RDF/XML).
    - Create a GitHub Release for the tag.
-   - Upload `example.owl` as a release asset with content type `application/rdf+xml`.
+   - Upload `example.owl` (content type `application/rdf+xml`) and `example.ttl` (content type `text/turtle`) as release assets.
+   - Copy both files into `docs/{version}/` and `docs/latest/` and push to `main`, triggering a GitHub Pages deployment.
 
-## Downloading the OWL file
+## Download URL patterns
 
-After a release has been created you can download the asset directly:
+### GitHub Releases
 
-```
-https://github.com/eilmiv/test-release-api/releases/download/v1.0.0/example.owl
-```
+| File | Versioned URL | Latest URL |
+|------|--------------|------------|
+| `example.owl` | `https://github.com/eilmiv/test-release-api/releases/download/{version}/example.owl` | `https://github.com/eilmiv/test-release-api/releases/latest/download/example.owl` |
+| `example.ttl` | `https://github.com/eilmiv/test-release-api/releases/download/{version}/example.ttl` | `https://github.com/eilmiv/test-release-api/releases/latest/download/example.ttl` |
 
-Replace `v1.0.0` with the actual tag you created.
+Replace `{version}` with the tag name, e.g. `v1.0.0`.
 
-If GitHub served the asset as `application/rdf+xml`, rdflib could parse it directly:
+### GitHub Pages
 
-```python
-from rdflib import Graph
+| File | Versioned URL | Latest URL |
+|------|--------------|------------|
+| `example.owl` | `https://eilmiv.github.io/test-release-api/{version}/example.owl` | `https://eilmiv.github.io/test-release-api/latest/example.owl` |
+| `example.ttl` | `https://eilmiv.github.io/test-release-api/{version}/example.ttl` | `https://eilmiv.github.io/test-release-api/latest/example.ttl` |
 
-g = Graph()
-g.parse("https://github.com/eilmiv/test-release-api/releases/download/v1.0.0/example.owl")
-print(list(g))
-```
+Replace `{version}` with the tag name, e.g. `v1.0.0`.
 
 ## Test Result (v1.0.0)
 
-Status: **Failed**
+Status: **Failed** (GitHub Releases) / **Passed** (GitHub Pages)
 
 Observed behavior for release `v1.0.0`:
 
@@ -62,24 +68,6 @@ GitHub currently does not preserve or serve custom MIME types for release asset 
 As an alternative to GitHub Releases, the same `example.owl` file is deployed to GitHub Pages.
 The GitHub Pages workflow (`.github/workflows/pages.yml`) runs on every push to `main` and publishes
 the contents of the `docs/` directory.
-
-### Accessing the file via GitHub Pages
-
-The OWL file is available at:
-
-```
-https://eilmiv.github.io/test-release-api/example.owl
-```
-
-You can test it with rdflib:
-
-```python
-from rdflib import Graph
-
-g = Graph()
-g.parse("https://eilmiv.github.io/test-release-api/example.owl")
-print(list(g))
-```
 
 ### GitHub Pages Test Result
 
