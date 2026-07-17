@@ -64,6 +64,18 @@ Content is served with correct mime type. [Go to pages index.html.](https://eilm
 | `example.owl` | `https://eilmiv.github.io/test-release-api/{version}/example.owl` | `https://eilmiv.github.io/test-release-api/latest/example.owl` |
 | `example.ttl` | `https://eilmiv.github.io/test-release-api/{version}/example.ttl` | `https://eilmiv.github.io/test-release-api/latest/example.ttl` |
 
-Replace `{version}` with the tag name, e.g. `v1.0.0`.
+Replace `{version}` with the tag name, e.g. `v2.0.0`.
+
+## rdflib example
+
+```python
+from rdflib import Graph
+
+# Expected: fails for Release download URL.
+Graph().parse("https://github.com/eilmiv/test-release-api/releases/download/v2.0.1/example.owl")
+
+# Expected: succeeds for GitHub Pages URL.
+Graph().parse("https://eilmiv.github.io/test-release-api/v2.0.1/example.owl")
+```
 
 
