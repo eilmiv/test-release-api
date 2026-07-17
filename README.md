@@ -28,8 +28,8 @@ both formats as release assets and to GitHub Pages under a versioned path.
    - Generate `example.ttl` (Turtle) from `example.owl` (RDF/XML).
    - Create a GitHub Release for the tag.
    - Upload `example.owl` (content type `application/rdf+xml`) and `example.ttl` (content type `text/turtle`) as release assets.
-   - Build a GitHub Pages artifact from release assets and deploy it directly.
-   - Fail the Pages deployment if required release assets are missing.
+   - Trigger a GitHub Pages deployment workflow that rebuilds the site from release assets.
+   - Fail the Pages deployment if required assets for `latest/` are missing.
 
 ## Download URL patterns
 
@@ -67,11 +67,10 @@ GitHub currently does not preserve or serve custom MIME types for release asset 
 ## GitHub Pages Alternative
 
 As an alternative to GitHub Releases, the same `example.owl` file is deployed to GitHub Pages.
-The release workflow (`.github/workflows/release.yml`) now deploys GitHub Pages in the same run,
-which avoids cross-workflow trigger timing issues.
+The GitHub Pages workflow (`.github/workflows/pages.yml`) rebuilds and deploys from release assets
+after the `Release` workflow completes successfully (`workflow_run`).
 
-The standalone GitHub Pages workflow (`.github/workflows/pages.yml`) remains available for
-manual rebuilds (`workflow_dispatch`) and pushes to `main`.
+The same Pages workflow is also available for manual rebuilds (`workflow_dispatch`) and pushes to `main`.
 
 ### GitHub Pages Test Result
 
