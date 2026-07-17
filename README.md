@@ -8,7 +8,17 @@ both formats as release assets and to GitHub Pages under a versioned path.
 
 **GitHub Releases:** The workflow uploads `example.owl` with `application/rdf+xml`, but the final download is still served as `application/octet-stream`.
 
-**GitHub Pages:** The same file is deployed via GitHub Pages (see [GitHub Pages section](#github-pages-alternative)) to test whether the correct MIME type is preserved there.
+**GitHub Pages:** The same file is deployed via GitHub Pages (see [GitHub Pages section](#github-pages-alternative)) where the MIME type is correct.
+
+## Setup overview
+
+- `example.owl` in the repository root is the canonical source file.
+- When you push a release tag (`v*`), CI converts `example.owl` to `example.ttl` and publishes both files as release assets.
+- The Pages deployment then copies the same released artifacts into:
+   - `/{version}/...` for immutable versioned files
+   - `/latest/...` as a moving alias to the newest release
+
+This keeps release downloads and GitHub Pages content aligned from one source while providing stable, versioned URLs.
 
 ## How to create a release
 
@@ -29,20 +39,23 @@ both formats as release assets and to GitHub Pages under a versioned path.
    - Create a GitHub Release for the tag.
    - Upload `example.owl` (content type `application/rdf+xml`) and `example.ttl` (content type `text/turtle`) as release assets.
    - Trigger a GitHub Pages deployment workflow that rebuilds the site from release assets.
-   - Fail the Pages deployment if required assets for `latest/` are missing.
 
 ## Download URL patterns
 
 ### GitHub Releases
+
+Content is always served as `application/octet-stream` even though api confirms the `content_type` is `application/rdf+xml`.
 
 | File | Versioned URL | Latest URL |
 |------|--------------|------------|
 | `example.owl` | `https://github.com/eilmiv/test-release-api/releases/download/{version}/example.owl` | `https://github.com/eilmiv/test-release-api/releases/latest/download/example.owl` |
 | `example.ttl` | `https://github.com/eilmiv/test-release-api/releases/download/{version}/example.ttl` | `https://github.com/eilmiv/test-release-api/releases/latest/download/example.ttl` |
 
-Replace `{version}` with the tag name, e.g. `v1.0.0`.
+Replace `{version}` with the tag name, e.g. `v2.0.0`.
 
 ### GitHub Pages
+
+Content is served with correct mime type. [Go to pages index.html.](https://eilmiv.github.io/test-release-api/)
 
 | File | Versioned URL | Latest URL |
 |------|--------------|------------|
@@ -51,37 +64,4 @@ Replace `{version}` with the tag name, e.g. `v1.0.0`.
 
 Replace `{version}` with the tag name, e.g. `v1.0.0`.
 
-## Test Result (v1.0.0)
 
-Status: **Failed** (GitHub Releases) / **Passed** (GitHub Pages)
-
-Observed behavior for release `v1.0.0`:
-
-- GitHub Release API asset metadata reports `content_type: application/rdf+xml`.
-- The actual download response header is `content-type: application/octet-stream`.
-
-Conclusion:
-
-GitHub currently does not preserve or serve custom MIME types for release asset downloads in this flow, and serves the file as `application/octet-stream`.
-
-## GitHub Pages Alternative
-
-As an alternative to GitHub Releases, the same `example.owl` file is deployed to GitHub Pages.
-The GitHub Pages workflow (`.github/workflows/pages.yml`) rebuilds and deploys from release assets
-after the `Release` workflow completes successfully (`workflow_run`).
-
-The same Pages workflow is also available for manual rebuilds (`workflow_dispatch`) and pushes to `main`.
-
-### GitHub Pages Test Result
-
-Status: **Passed**
-
-Observed behavior:
-
-- GitHub Pages serves `example.owl` with `content-type: application/rdf+xml`.
-- `rdflib` can parse the URL directly without requiring an alternate extension.
-
-Conclusion:
-
-GitHub Pages currently serves `.owl` files in this repository with the correct
-`application/rdf+xml` MIME type, so an additional `.rdf` copy is not needed.
