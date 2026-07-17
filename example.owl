@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xml:base="https://example.org/example">
+
+  <owl:Ontology rdf:about="https://example.org/example">
+    <rdfs:label>Example Ontology</rdfs:label>
+    <rdfs:comment>A minimal example OWL ontology used to demonstrate release asset MIME type configuration.</rdfs:comment>
+  </owl:Ontology>
+
+  <owl:Class rdf:about="https://example.org/example#Thing">
+    <rdfs:label>Thing</rdfs:label>
+    <rdfs:comment>An example class.</rdfs:comment>
+  </owl:Class>
+
+</rdf:RDF>
