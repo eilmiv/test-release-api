@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - main
-  release:
-    types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,33 +29,49 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+
           mkdir -p _site
           cp docs/index.html _site/index.html
 
           # Download assets for every release into a versioned subdirectory
-          gh release list --repo ${{ github.repository }} --json tagName \
-            --jq '.[].tagName' | while read tag; do
+          gh release list --repo "$REPO" --json tagName --jq '.[].tagName' | while read -r tag; do
+            [ -n "$tag" ] || continue
             mkdir -p "_site/${tag}"
-            gh release download "${tag}" \
-              --repo ${{ github.repository }} \
-              --pattern 'example.owl' \
-              --pattern 'example.ttl' \
+            if ! gh release download "${tag}" \
+              --repo "$REPO" \
+              -p 'example.owl' \
+              -p 'example.ttl' \
               --dir "_site/${tag}" \
-              --clobber 2>/dev/null || true
+              --clobber; then
+              echo "::warning::Could not download both assets for ${tag}."
+            fi
           done
 
-          # Populate latest/ from the release marked as latest
-          LATEST=$(gh release list --repo ${{ github.repository }} \
+          # Populate latest/ from the release marked as latest and require both assets.
+          LATEST=$(gh release list --repo "$REPO" \
             --json tagName,isLatest --jq '.[] | select(.isLatest) | .tagName')
-          if [ -n "$LATEST" ]; then
-            mkdir -p _site/latest
-            gh release download "${LATEST}" \
-              --repo ${{ github.repository }} \
-              --pattern 'example.owl' \
-              --pattern 'example.ttl' \
-              --dir _site/latest \
-              --clobber 2>/dev/null || true
+          if [ -z "$LATEST" ]; then
+            echo "::error::No latest release found."
+            exit 1
           fi
+
+          mkdir -p _site/latest
+          gh release download "$LATEST" \
+            --repo "$REPO" \
+            -p 'example.owl' \
+            -p 'example.ttl' \
+            --dir _site/latest \
+            --clobber
+
+          for f in example.owl example.ttl; do
+            if [ ! -s "_site/latest/${f}" ]; then
+              echo "::error::Missing required latest asset: ${f}"
+              exit 1
+            fi
+          done
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

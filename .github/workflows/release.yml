@@ -3,7 +3,7 @@ on:
     tags:
       - 'v*'
 
-name: Release
+name: Release and Deploy Pages
 
 jobs:
   release:
@@ -55,4 +55,95 @@ jobs:
           asset_path: ./example.ttl
           asset_name: example.ttl
           asset_content_type: text/turtle
+
+  deploy_pages:
+    name: Deploy GitHub Pages
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build versioned site from release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+          CURRENT_TAG="${{ github.ref_name }}"
+
+          mkdir -p _site
+          cp docs/index.html _site/index.html
+
+          # Download assets for all releases to preserve versioned URLs.
+          gh release list --repo "$REPO" --json tagName --jq '.[].tagName' | while read -r tag; do
+            [ -n "$tag" ] || continue
+            mkdir -p "_site/${tag}"
+            if ! gh release download "$tag" \
+              --repo "$REPO" \
+              -p 'example.owl' \
+              -p 'example.ttl' \
+              --dir "_site/${tag}" \
+              --clobber; then
+              echo "::warning::Could not download both assets for ${tag}."
+            fi
+          done
+
+          # The release that triggered this workflow must have both assets.
+          mkdir -p "_site/${CURRENT_TAG}"
+          gh release download "$CURRENT_TAG" \
+            --repo "$REPO" \
+            -p 'example.owl' \
+            -p 'example.ttl' \
+            --dir "_site/${CURRENT_TAG}" \
+            --clobber
+
+          for f in example.owl example.ttl; do
+            if [ ! -s "_site/${CURRENT_TAG}/${f}" ]; then
+              echo "::error::Missing required asset for ${CURRENT_TAG}: ${f}"
+              exit 1
+            fi
+          done
+
+          # Populate latest/ and fail if required assets are missing there.
+          LATEST=$(gh release list --repo "$REPO" --json tagName,isLatest --jq '.[] | select(.isLatest) | .tagName')
+          if [ -z "$LATEST" ]; then
+            echo "::error::No latest release found."
+            exit 1
+          fi
+
+          mkdir -p _site/latest
+          gh release download "$LATEST" \
+            --repo "$REPO" \
+            -p 'example.owl' \
+            -p 'example.ttl' \
+            --dir _site/latest \
+            --clobber
+
+          for f in example.owl example.ttl; do
+            if [ ! -s "_site/latest/${f}" ]; then
+              echo "::error::Missing required latest asset: ${f}"
+              exit 1
+            fi
+          done
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
