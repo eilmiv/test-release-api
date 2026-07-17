@@ -83,33 +83,14 @@ print(list(g))
 
 ### GitHub Pages Test Result
 
-Status: **Failed**
+Status: **Passed**
 
 Observed behavior:
 
-- GitHub Pages serves `example.owl` with `content-type: application/octet-stream`.
-- The `.owl` extension is not mapped to `application/rdf+xml` by the GitHub Pages CDN (Fastly/nginx).
-- As a result, rdflib raises a `PluginException` because it cannot determine the RDF format from the
-  `application/octet-stream` content type.
+- GitHub Pages serves `example.owl` with `content-type: application/rdf+xml`.
+- `rdflib` can parse the URL directly without requiring an alternate extension.
 
 Conclusion:
 
-GitHub Pages also does not serve `.owl` files with the correct `application/rdf+xml` MIME type.
-The CDN's MIME type mapping does not include an entry for the `.owl` extension.
-
-### Workaround
-
-Rename (or copy) the file with the `.rdf` extension, which is officially registered with IANA for
-`application/rdf+xml` and is included in the MIME type table of most web servers and CDNs:
-
-```
-https://eilmiv.github.io/test-release-api/example.rdf
-```
-
-```python
-from rdflib import Graph
-
-g = Graph()
-g.parse("https://eilmiv.github.io/test-release-api/example.rdf")
-print(list(g))
-```
+GitHub Pages currently serves `.owl` files in this repository with the correct
+`application/rdf+xml` MIME type, so an additional `.rdf` copy is not needed.
