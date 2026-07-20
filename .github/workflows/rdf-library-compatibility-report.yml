@@ -1,6 +1,7 @@
 name: RDF library compatibility report
 
 on:
+  pull_request:
   workflow_dispatch:
   workflow_run:
     workflows: ["Deploy to GitHub Pages"]
@@ -46,8 +47,8 @@ jobs:
         run: |
           set -euo pipefail
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            LABEL="manual-${GITHUB_SHA::7}"
+          if [ "${{ github.event_name }}" != "workflow_run" ]; then
+            LABEL="${{ github.event_name }}-${GITHUB_SHA::7}"
             RELEASE_BASE="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download"
             PAGES_BASE="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO_NAME}/latest"
           else
