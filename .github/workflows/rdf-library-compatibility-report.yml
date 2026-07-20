@@ -2,10 +2,6 @@ name: RDF library compatibility report
 
 on:
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Release tag to test (defaults to the latest release)
-        required: false
   workflow_run:
     workflows: ["Deploy to GitHub Pages"]
     types:
@@ -43,35 +39,44 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y raptor2-utils
 
-      - name: Resolve release tag
-        id: release
+      - name: Resolve report target
+        id: target
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG='${{ inputs.tag }}'
-          if [ -z "$TAG" ]; then
+          set -euo pipefail
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            LABEL="manual-${GITHUB_SHA::7}"
+            RELEASE_BASE="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download"
+            PAGES_BASE="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO_NAME}/latest"
+          else
             TAG=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)
+            LABEL="$TAG"
+            RELEASE_BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+            PAGES_BASE="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO_NAME}/${TAG}"
           fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "label=$LABEL" >> "$GITHUB_OUTPUT"
+          echo "release_url_owl=${RELEASE_BASE}/example.owl" >> "$GITHUB_OUTPUT"
+          echo "pages_url_owl=${PAGES_BASE}/example.owl" >> "$GITHUB_OUTPUT"
+          echo "release_url_ttl=${RELEASE_BASE}/example.ttl" >> "$GITHUB_OUTPUT"
+          echo "pages_url_ttl=${PAGES_BASE}/example.ttl" >> "$GITHUB_OUTPUT"
 
       - name: Run compatibility suite
-        env:
-          TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
           OUTPUT_DIR="$RUNNER_TEMP/rdf-library-compatibility"
-          REPO_NAME="${GITHUB_REPOSITORY#*/}"
           mkdir -p "$OUTPUT_DIR"
           python "${GITHUB_WORKSPACE}/scripts/run_rdf_compatibility_suite.py" \
-            --release-url-owl "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/example.owl" \
-            --pages-url-owl "https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO_NAME}/${TAG}/example.owl" \
-            --release-url-ttl "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/example.ttl" \
-            --pages-url-ttl "https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO_NAME}/${TAG}/example.ttl" \
+            --release-url-owl "${{ steps.target.outputs.release_url_owl }}" \
+            --pages-url-owl "${{ steps.target.outputs.pages_url_owl }}" \
+            --release-url-ttl "${{ steps.target.outputs.release_url_ttl }}" \
+            --pages-url-ttl "${{ steps.target.outputs.pages_url_ttl }}" \
             --output-dir "$OUTPUT_DIR"
           cat "$OUTPUT_DIR/rdf-library-compatibility-report.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload compatibility report artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rdf-library-compatibility-report-${{ steps.release.outputs.tag }}
+          name: rdf-library-compatibility-report-${{ steps.target.outputs.label }}
           path: ${{ runner.temp }}/rdf-library-compatibility
