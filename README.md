@@ -19,6 +19,7 @@ both formats as release assets and to GitHub Pages under a versioned path.
    - Pages are rebuilt from GitHub Release assets (downloaded with `gh release download`)
 - Version layout: for each release tag, files are placed at `/{version}/example.owl` and `/{version}/example.ttl`; the release marked as latest is also copied to `/latest/...`.
 - Pages entry page: [`docs/index.html`](docs/index.html) is copied to the site root as `_site/index.html` during deployment.
+- Library compatibility report: [`rdf-library-compatibility-report.yml`](.github/workflows/rdf-library-compatibility-report.yml) runs after a successful Pages deployment (or manually) and uploads a Markdown/JSON artifact comparing RDF library behavior for Release URLs vs Pages URLs.
 
 This keeps release downloads and GitHub Pages content aligned from one source while providing stable, versioned URLs.
 
@@ -78,4 +79,23 @@ Graph().parse("https://github.com/eilmiv/test-release-api/releases/download/v2.0
 Graph().parse("https://eilmiv.github.io/test-release-api/v2.0.1/example.owl")
 ```
 
+## Library compatibility report
+
+The repository includes a workflow-driven compatibility suite for these libraries:
+
+- RDFLib (Python)
+- Apache Jena (Java)
+- Eclipse RDF4J (Java)
+- rdf-dereference (JavaScript)
+- Redland librdf via `rapper` (C)
+
+Each run checks both `example.owl` and `example.ttl` against:
+
+- GitHub Release download URLs, which redirect to a generic `application/octet-stream` response
+- GitHub Pages URLs, which keep the RDF-specific MIME type
+
+The workflow uploads an artifact named `rdf-library-compatibility-report-{tag}` containing:
+
+- `rdf-library-compatibility-report.md`
+- `rdf-library-compatibility-results.json`
 
